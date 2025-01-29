@@ -1,6 +1,6 @@
-# Running Ray Tune on SLURM with WANDB Integration
+# Running Ray Tune on SLURM with Optuna and WANDB Integration
 
-This guide provides a step-by-step explanation of how to set up and execute Ray Tune on an SLURM cluster using WANDB (Weights & Biases) integration. The approach uses a head node for coordination and all other nodes as workers.
+This guide provides a step-by-step explanation of how to set up and execute Ray Tune on an SLURM cluster with Optuna and WANDB (Weights & Biases) integration. The approach uses a head node for coordination and all other nodes as workers.
 
 This workflow is based on inspiration from the following repositories:
 
@@ -25,6 +25,7 @@ Before proceeding, ensure the following:
    - Ray (`pip install ray`).
    - Torch and TorchVision (`pip install torch torchvision` for GPU).
    - WANDB (`pip install wandb`).
+   - Optuna (`pip install optuna`)
 3. **Offline WANDB Setup**:
    - Follow the instructions in [wandb-offline-sync-hook](https://github.com/klieret/wandb-offline-sync-hook/) to enable offline logging.
 
@@ -54,17 +55,29 @@ conda activate <env_path>
 pip install torch torchvision optuna ray[tune] ray[default] joblib wandb wandb-osh colorlogs 
 ```
 
-### 3. Adjust SLURM Script
+### 3. Use splitter to split dataset.
+
+Models were trained on !(asl-sign-language)[https://www.kaggle.com/datasets/grassknoted/asl-alphabet]. You will have to download the dataset on machine drive. Later use `splitter.py` pointing at training data folder (containing subfolders with categories). You can choose any destination path you want.
+
+```
+python splitter.py --source=<SRC_PATH> --dest=<DEST_PATH>
+```
+
+### 4. Adjust SLURM Script
 
 Edit `slurm_ray_cluster.sh` as needed:
 
-- Replace paths in the script to point to your data directory, state directory, and Conda environment.
+- Replace paths in the script to point to your data directory, state directory, and Conda environment. You can also adjust number of trials (attempts for finding best parameters) using `--num_samples` flag. You can also change maximum number of epochs model is trained `--max_num_epochs` and GPU/CPU per trial ` --gpus_per_trial --cpus_per_trial`.
   
   Example:
   ```bash
   # Data and state directories
   --data_path="/path/to/your/data" \
-  --state_path="/path/to/your/state"
+  --state_path="/path/to/your/state" \
+  --num_samples=<int> \
+  --max_num_epochs=<int> \
+  --gpus_per_trial=<int> \
+  --cpus_per_trial=<int> \
 
   # Conda environment
   source activate <env_path>
@@ -88,7 +101,7 @@ sbatch slurm_ray_cluster.sh
 
 ### 6. Monitor Logs
 
-Check SLURM logs in the `outputs/` directory to monitor progress.
+Log into your weights and biases account where logs will be streamed.
 
 ## Script Explanation
 
@@ -118,7 +131,9 @@ This Python script:
 #### Key Functions
 
 - **`train_model`**: Defines the model training loop.
+- **`test_best_mode`**: Tests and saves weights state of the best model.
 - **`main`**: Sets up Ray Tune configuration and starts trials.
+- **`load_data`**: Loads training and test data.
 
 ## Notes and Recommendations
 
