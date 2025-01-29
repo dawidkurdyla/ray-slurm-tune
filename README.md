@@ -13,7 +13,6 @@ This workflow is based on inspiration from the following repositories:
 - `ray_tune_train_res_18_wandb_os_set.py`: The main Python script that trains a model using Ray Tune and integrates with WANDB.
 - `slurm_ray_cluster.sh`: SLURM batch script to initialize the Ray cluster and run the training script.
 - `outputs/`: Directory for SLURM log files.
-- `.gitignore`: Preconfigured to exclude temporary files and sensitive information.
 
 ## Prerequisites
 
